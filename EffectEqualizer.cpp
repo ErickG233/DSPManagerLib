@@ -23,45 +23,6 @@
 
 #define NUM_BANDS 6
 
-/*      EQ presets      */
-static int16_t gPresetAcoustic[NUM_BANDS] = { 450, 450, 350, 175, 350, 250 };
-static int16_t gPresetBassBooster[NUM_BANDS] = { 650, 650, 400, 0, 0, 0 };
-static int16_t gPresetBassReducer[NUM_BANDS] = { -650, -650, -400, 0, 0, 0 };
-static int16_t gPresetClassical[NUM_BANDS] = { 400, 400, 325, -50, 200, 350 };
-static int16_t gPresetDeep[NUM_BANDS] = { 400, 400, 50, 150, -400, -450 };
-static int16_t gPresetFlat[NUM_BANDS] = { 0, 0, 0, 0, 0, 0 };
-static int16_t gPresetRnB[NUM_BANDS] = { 550, 550, 350, -175, 150, 250 };
-static int16_t gPresetRock[NUM_BANDS] = { 450, 450, 275, -50, 275, 400 };
-static int16_t gPresetSmallSpeakers[NUM_BANDS] = { 650, 650, 400, 0, -650, -400 };
-static int16_t gPresetTrebleBooster[NUM_BANDS] = { 0, 0, 0, 0, 400, 650 };
-static int16_t gPresetTrebleReducer[NUM_BANDS] = { 0, 0, 0, 0, -650, -400 };
-static int16_t gPresetVocalBooster[NUM_BANDS] = { -250, -250, 0, 350, 150, -200 };
-
-struct sPresetConfig {
-    const char * name;
-    const int16_t * bandConfigs;
-};
-
-static const sPresetConfig gEqualizerPresets[] = {
-    { "Acoustic",       gPresetAcoustic      },
-    { "Bass Booster",   gPresetBassBooster   },
-    { "Bass Reducer",   gPresetBassReducer   },
-    { "Classical",      gPresetClassical     },
-    { "Deep",           gPresetDeep          },
-    { "Flat",           gPresetFlat          },
-    { "R&B",            gPresetRnB           },
-    { "Rock",           gPresetRock          },
-    { "Small Speakers", gPresetSmallSpeakers },
-    { "Treble Booster", gPresetTrebleBooster },
-    { "Treble Reducer", gPresetTrebleReducer },
-    { "Vocal Booster",  gPresetVocalBooster  }
-};
-
-static const int16_t gNumPresets = sizeof(gEqualizerPresets)/sizeof(sPresetConfig);
-static int16_t mCurPreset = 0;
-
-/*      End of EQ presets      */
-
 typedef struct {
     int32_t status;
     uint32_t psize;
@@ -172,7 +133,7 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
                 reply1x4_1x2_t *replyData = (reply1x4_1x2_t *) pReplyData;
                 replyData->status = 0;
                 replyData->vsize = 2;
-                replyData->data = gNumPresets;
+                replyData->data = 0;
                 *replySize = sizeof(reply1x4_1x2_t);
                 return 0;
             }
@@ -186,14 +147,6 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
                     replyData->data[2 + i] = (int16_t)(mBand[i] * 100 + 0.5f); // band levels
                 }
                 *replySize = sizeof(reply1x4_props_t);
-                return 0;
-            }
-            if (cmd == EQ_PARAM_CUR_PRESET) {
-                reply1x4_1x2_t *replyData = (reply1x4_1x2_t *) pReplyData;
-                replyData->status = 0;
-                replyData->vsize = 2;
-                replyData->data = mCurPreset;
-                *replySize = sizeof(reply1x4_1x2_t);
                 return 0;
             }
         } else if (cep->psize == 8) {
@@ -237,25 +190,10 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
                 *replySize = sizeof(reply2x4_2x4_t);
                 return 0;
             }
-            if (cmd == EQ_PARAM_GET_PRESET_NAME && arg >= 0 && arg < int32_t(gNumPresets)) {
-                effect_param_t *replyData = (effect_param_t *)pReplyData;
-                memcpy(pReplyData, pCmdData, sizeof(effect_param_t) + cep->psize);
-                uint32_t *pValueSize = &replyData->vsize;
-                int voffset = ((replyData->psize - 1) / sizeof(int32_t) + 1) * sizeof(int32_t);
-                void *pValue = replyData->data + voffset;
-
-                char *name = (char *)pValue;
-                strncpy(name, gEqualizerPresets[arg].name, *pValueSize - 1);
-                name[*pValueSize - 1] = 0;
-                *pValueSize = strlen(name) + 1;
-                *replySize = sizeof(effect_param_t) + voffset + replyData->vsize;
-                replyData->status = 0;
-                return 0;
-            }
         }
 
         /* Didn't support this command. We'll just set error status. */
-        ALOGE("Unknown GET_PARAM of size %d (%d)", cep->psize, ((int32_t *) cep)[3]);
+        ALOGE("Unknown GET_PARAM of size %d", cep->psize);
         effect_param_t *replyData = (effect_param_t *) pReplyData;
         replyData->status = -EINVAL;
         replyData->vsize = 0;
@@ -275,26 +213,6 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
                 ALOGI("Setting loudness correction reference to %f dB", mLoudnessAdjustment);
                 *replyData = 0;
                 return 0;
-            }
-        }
-
-        if (cep->psize == 4 && cep->vsize == 2) {
-            int32_t cmd = *((int32_t *) cep->data);
-            int16_t arg = *((int16_t *) (cep->data + sizeof(int32_t)));
-
-            if (cmd == EQ_PARAM_CUR_PRESET && arg >= 0 && arg < gNumPresets) {
-                    sizeof(const int16_t *);
-                int16_t i = 0;
-                for (i = 0; i < NUM_BANDS; i++) {
-                    mBand[i] = gEqualizerPresets[arg].bandConfigs[i] / 100.0f;
-                }
-                ALOGI("Preset set to %d",arg);
-                mCurPreset = arg;
-                *replyData = 0;
-                refreshBands();
-                return 0;
-            } else {
-                ALOGI("Asking to set to %d",arg);
             }
         }
 
