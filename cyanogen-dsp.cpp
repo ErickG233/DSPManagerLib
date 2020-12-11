@@ -16,7 +16,7 @@
 
 #define LOG_TAG "DSP-entry"
 
-#include <cutils/log.h>
+#include <log/log.h>
 #include <string.h>
 #include "media/AudioEffect.h"
 #include "hardware/audio_effect.h"
@@ -173,13 +173,13 @@ int32_t EffectGetDescriptor(const effect_uuid_t *uuid, effect_descriptor_t *pDes
 }
 
 audio_effect_library_t AUDIO_EFFECT_LIBRARY_INFO_SYM = {
-    .tag = AUDIO_EFFECT_LIBRARY_TAG,
-    .version = EFFECT_LIBRARY_API_VERSION,
-    .name = "CyanogenMod's Effect Library",
-    .implementor = "Antti S. Lankila",
-    .create_effect = EffectCreate,
-    .release_effect = EffectRelease,
-    .get_descriptor = EffectGetDescriptor,
+	.tag = AUDIO_EFFECT_LIBRARY_TAG,
+	.version = EFFECT_LIBRARY_API_VERSION,
+	.name = "CyanogenMod's Effect Library",
+	.implementor = "Antti S. Lankila",
+	.create_effect = EffectCreate,
+	.release_effect = EffectRelease,
+	.get_descriptor = EffectGetDescriptor,
 };
 
 }
