@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#ifdef DEBUG
 #define LOG_TAG "DSP-entry"
 
-#include <cutils/log.h>
+#include <log/log.h>
+#endif
+
 #include <string.h>
 #include "media/AudioEffect.h"
 #include "hardware/audio_effect.h"
@@ -35,8 +38,8 @@ static effect_descriptor_t compression_descriptor = {
 	{ 0xc3b61114, 0xdef3, 0x5a85, 0xa39d, { 0x5c, 0xc4, 0x02, 0x0a, 0xb8, 0xaf } }, // own UUID
 	EFFECT_CONTROL_API_VERSION,
 	EFFECT_FLAG_INSERT_FIRST | EFFECT_FLAG_VOLUME_CTRL,
-	10, /* 1 MIPS. FIXME: should be measured. */
-	1,
+	20, /* 2 MIPS. FIXME: should be measured. */
+	2,
 	"CyanogenMod's Dynamic Range Compression",
 	"Antti S. Lankila"
 };
@@ -46,8 +49,8 @@ static effect_descriptor_t bassboost_descriptor = {
 	{ 0xeb888559, 0x23db, 0x515f, 0xbd90, { 0x53, 0x60, 0x56, 0x5b, 0x1a, 0x46 } }, // own UUID
 	EFFECT_CONTROL_API_VERSION,
 	0,
-	10, /* 1 MIPS. FIXME: should be measured. */
-	1,
+	20, /* 2 MIPS. FIXME: should be measured. */
+	2,
 	"CyanogenMod's Bass Boost",
 	"Antti S. Lankila"
 };
@@ -57,8 +60,8 @@ static effect_descriptor_t equalizer_descriptor = {
         { 0x06cc8ec6, 0x15a0, 0x5b8c, 0x9460, { 0xe3, 0x79, 0xbb, 0xa6, 0xc0, 0x90 } }, // own UUID
 	EFFECT_CONTROL_API_VERSION,
 	0,
-	10, /* 1 MIPS. FIXME: should be measured. */
-	1,
+	20, /* 2 MIPS. FIXME: should be measured. */
+	2,
 	"CyanogenMod's Equalizer",
 	"Antti S. Lankila"
 };
@@ -68,8 +71,8 @@ static effect_descriptor_t virtualizer_descriptor = {
 	{ 0x38e9eea4, 0xb7c9, 0x5230, 0xbf5c, { 0x60, 0x20, 0x3b, 0xf6, 0x42, 0x3c } }, // own UUID
 	EFFECT_CONTROL_API_VERSION,
 	EFFECT_FLAG_INSERT_LAST,
-	10, /* 1 MIPS. FIXME: should be measured. */
-	1,
+	20, /* 2 MIPS. FIXME: should be measured. */
+	2,
 	"CyanogenMod's Headset Virtualization",
 	"Antti S. Lankila"
 };
@@ -152,34 +155,33 @@ int32_t EffectRelease(effect_handle_t ei) {
 
 int32_t EffectGetDescriptor(const effect_uuid_t *uuid, effect_descriptor_t *pDescriptor) {
 	if (memcmp(uuid, &compression_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-	    memcpy(pDescriptor, &compression_descriptor, sizeof(effect_descriptor_t));
-	    return 0;
+		memcpy(pDescriptor, &compression_descriptor, sizeof(effect_descriptor_t));
+		return 0;
 	}
 	if (memcmp(uuid, &bassboost_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-	    memcpy(pDescriptor, &bassboost_descriptor, sizeof(effect_descriptor_t));
-	    return 0;
+		memcpy(pDescriptor, &bassboost_descriptor, sizeof(effect_descriptor_t));
+		return 0;
 	}
 	if (memcmp(uuid, &equalizer_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-	    memcpy(pDescriptor, &equalizer_descriptor, sizeof(effect_descriptor_t));
-	    return 0;
+		memcpy(pDescriptor, &equalizer_descriptor, sizeof(effect_descriptor_t));
+		return 0;
 	}
 	if (memcmp(uuid, &virtualizer_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-	    memcpy(pDescriptor, &virtualizer_descriptor, sizeof(effect_descriptor_t));
-	    return 0;
-
+		memcpy(pDescriptor, &virtualizer_descriptor, sizeof(effect_descriptor_t));
+		return 0;
 	}
 
 	return -EINVAL;
 }
 
 audio_effect_library_t AUDIO_EFFECT_LIBRARY_INFO_SYM = {
-    .tag = AUDIO_EFFECT_LIBRARY_TAG,
-    .version = EFFECT_LIBRARY_API_VERSION,
-    .name = "CyanogenMod's Effect Library",
-    .implementor = "Antti S. Lankila",
-    .create_effect = EffectCreate,
-    .release_effect = EffectRelease,
-    .get_descriptor = EffectGetDescriptor,
+	.tag = AUDIO_EFFECT_LIBRARY_TAG,
+	.version = EFFECT_LIBRARY_API_VERSION,
+	.name = "CyanogenMod's Effect Library",
+	.implementor = "Antti S. Lankila",
+	.create_effect = EffectCreate,
+	.release_effect = EffectRelease,
+	.get_descriptor = EffectGetDescriptor,
 };
 
 }

@@ -8,30 +8,30 @@
 #define CUSTOM_EQ_PARAM_LOUDNESS_CORRECTION 1000
 
 class EffectEqualizer : public Effect {
-    private:
-    double mBand[6];
-    Biquad mFilterL[5], mFilterR[5];
+	private:
+	double mBand[6];
+	Biquad mFilterL[5], mFilterR[5];
 
-    /* Automatic equalizer */
-    double mLoudnessAdjustment;
+	/* Automatic equalizer */
+	double mLoudnessAdjustment;
 
-    double mLoudnessL;
-    double mLoudnessR;
-    int32_t mNextUpdate;
-    int32_t mNextUpdateInterval;
-    double mPowerSquaredL;
-    double mPowerSquaredR;
+	double mLoudnessL;
+	double mLoudnessR;
+	int32_t mNextUpdate;
+	int32_t mNextUpdateInterval;
+	double mPowerSquaredL;
+	double mPowerSquaredR;
 
-    /* Smooth enable/disable */
-    int32_t mFade;
+	/* Smooth enable/disable */
+	int32_t mFade;
 
-    void setBand(int32_t idx, float dB);
-    double getAdjustedBand(int32_t idx, double loudness);
-    void refreshBands();
-    void updateLoudnessEstimate(double& loudness, double powerSquared);
+	void setBand(int32_t idx, float dB);
+	double getAdjustedBand(int32_t idx, double loudness);
+	void refreshBands();
+	void updateLoudnessEstimate(double& loudness, double powerSquared);
 
-    public:
-    EffectEqualizer();
-    int32_t command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdData, uint32_t* replySize, void* pReplyData);
-    int32_t process(audio_buffer_t *in, audio_buffer_t *out);
+	public:
+	EffectEqualizer();
+	int32_t command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdData, uint32_t* replySize, void* pReplyData);
+	int32_t process(audio_buffer_t *in, audio_buffer_t *out);
 };

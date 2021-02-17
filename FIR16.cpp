@@ -20,10 +20,10 @@
 
 
 FIR16::FIR16()
-    : mIndex(0)
+	: mIndex(0)
 {
-    memset(mState, 0, sizeof(mState));
-    memset(mCoeff, 0, sizeof(mCoeff));
+	memset(mState, 0, sizeof(mState));
+	memset(mCoeff, 0, sizeof(mCoeff));
 }
 
 FIR16::~FIR16()
@@ -32,20 +32,20 @@ FIR16::~FIR16()
 
 void FIR16::setParameters(double coeff[16])
 {
-    for (int32_t i = 0; i < 16; i ++) {
-        mCoeff[i] = double(coeff[i] * 4294967296.0);
-    }
+	for (int32_t i = 0; i < 16; i ++) {
+		mCoeff[i] = double(coeff[i] * 4294967296.0);
+	}
 }
 
 double FIR16::process(double x0)
 {
-    mIndex --;
-    mState[mIndex & 0xf] = x0;
+	mIndex --;
+	mState[mIndex & 0xf] = x0;
 
-    double y = 0.0;
-    for (int32_t i = 0; i < 16; i ++) {
-        y += mCoeff[i] * mState[(i + mIndex) & 0xf];
-    }
+	double y = 0.0;
+	for (int32_t i = 0; i < 16; i ++) {
+		y += mCoeff[i] * mState[(i + mIndex) & 0xf];
+	}
 
-    return (y / 4294967296.0);
+	return (y / 4294967296.0);
 }

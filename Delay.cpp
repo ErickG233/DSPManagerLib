@@ -19,33 +19,33 @@
 #include <string.h>
 
 Delay::Delay()
-    : mState(0), mIndex(0), mLength(0)
+	: mState(0), mIndex(0), mLength(0)
 {
 }
 
 Delay::~Delay()
 {
-    if (mState != 0) {
-        delete[] mState;
-        mState = 0;
-    }
+	if (mState != 0) {
+		delete[] mState;
+		mState = 0;
+	}
 }
 
 void Delay::setParameters(float samplingFrequency, float time)
 {
-    mLength = int32_t(time * samplingFrequency + 0.5f);
-    if (mState != 0) {
-        delete[] mState;
-    }
-    mState = new double[mLength];
-    memset(mState, 0, mLength * sizeof(int32_t));
-    mIndex = 0;
+	mLength = int32_t(time * samplingFrequency + 0.5f);
+	if (mState != 0) {
+		delete[] mState;
+	}
+	mState = new double[mLength];
+	memset(mState, 0, mLength * sizeof(int32_t));
+	mIndex = 0;
 }
 
 double Delay::process(double x0)
 {
-    double y0 = mState[mIndex];
-    mState[mIndex] = x0;
-    mIndex = (mIndex + 1) % mLength;
-    return y0;
+	double y0 = mState[mIndex];
+	mState[mIndex] = x0;
+	mIndex = (mIndex + 1) % mLength;
+	return y0;
 }
