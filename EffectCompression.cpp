@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#ifdef DEBUG
 #define LOG_TAG "Effect-DRC"
 
 #include <log/log.h>
+#endif
+
 #include "EffectCompression.h"
 
 #include <cmath>
@@ -63,29 +66,39 @@ int32_t EffectCompression::command(uint32_t cmdCode, uint32_t cmdSize, void* pCm
 			if (cmd == 0) {
 				/* 1.0 .. 11.0 */
 				mCompressionRatio = 1.f + value / 100.f;
+#ifdef DEBUG
 				ALOGI("Compression factor set to: %f", mCompressionRatio);
+#endif
 				*replyData = 0;
 				return 0;
 			}
 		}
 
+#ifdef DEBUG
 		ALOGE("Unknown SET_PARAM of %d, %d bytes", cep->psize, cep->vsize);
+#endif
 		return -1;
 	}
 
 	if (cmdCode == EFFECT_CMD_SET_VOLUME && cmdSize == 8) {
+#ifdef DEBUG
 		ALOGI("Setting volumes");
+#endif
 
 		if (pReplyData != NULL) {
 			int32_t *userVols = (int32_t *) pCmdData;
 			for (uint32_t i = 0; i < cmdSize / 4; i ++) {
+#ifdef DEBUG
 				ALOGI("user volume on channel %d: %d", i, userVols[i]);
+#endif
 				mUserLevel[i] = userVols[i];
 			}
 
 			int32_t *myVols = (int32_t *) pReplyData;
 			for (uint32_t i = 0; i < *replySize / 4; i ++) {
+#ifdef DEBUG
 				ALOGI("Returning unity for our pre-requested volume on channel %d", i);
+#endif
 				myVols[i] = 1 << 24; /* Unity gain */
 			}
 		} else {
@@ -101,7 +114,9 @@ int32_t EffectCompression::command(uint32_t cmdCode, uint32_t cmdSize, void* pCm
 	/* Init to current volume level on enabling effect to prevent
 	* initial fade in / other shite */
 	if (cmdCode == EFFECT_CMD_ENABLE) {
+#ifdef DEBUG
 		ALOGI("Copying user levels as initial loudness.");
+#endif
 		/* Unfortunately Android calls SET_VOLUME after ENABLE for us.
 		* so we can't really use those volumes. It's safest just to fade in
 		* each time. */
@@ -119,11 +134,11 @@ uint64_t EffectCompression::estimateOneChannelLevel(audio_buffer_t *in, int32_t 
 	uint64_t power = 0;
 	for (uint32_t i = 0; i < in->frameCount; i ++) {
 
-		int32_t	tmp = read(in, offset);
+		int32_t tmp = read(in, offset);
 		tmp = weigherBP.process(tmp);
 
 		/* 2^24 * 2^24 = 48 */
-		power += int64_t(tmp) * int64_t(tmp);
+		power += pow(int64_t(tmp), 2);
 		offset += interleave;
 	}
 
@@ -196,11 +211,11 @@ int32_t EffectCompression::process(audio_buffer_t *in, audio_buffer_t *out)
 		}
 
 		for (uint32_t j = 0; j < in->frameCount; j ++) {
-			int32_t	value = read(in, j * 2 + i);
+			int32_t value = read(in, (j << 1) + i);
 
 			value = int64_t(value) * mCurrentLevel[i] >> 24;
 
-			write(out, j * 2 + i, value);
+			write(out, (j << 1) + i, value);
 
 			mCurrentLevel[i] += volAdj;
 		}

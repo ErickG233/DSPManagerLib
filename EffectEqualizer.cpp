@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#ifdef DEBUG
 #define LOG_TAG "Effect-Equalizer"
 
 #include <log/log.h>
+#endif
+
 #include "EffectEqualizer.h"
 
 #include <cmath>
@@ -90,7 +93,9 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
 	if (cmdCode == EFFECT_CMD_SET_CONFIG) {
 		int32_t ret = Effect::configure(pCmdData);
 		if (ret != 0) {
+#ifdef DEBUG
 			ALOGE("EFFECT_CMD_SET_CONFIG failed");
+#endif
 			int32_t *replyData = (int32_t *) pReplyData;
 			*replyData = ret;
 			return 0;
@@ -189,7 +194,9 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
 		}
 
 		/* Didn't support this command. We'll just set error status. */
+#ifdef DEBUG
 		ALOGE("Unknown GET_PARAM of size %d", cep->psize);
+#endif
 		effect_param_t *replyData = (effect_param_t *) pReplyData;
 		replyData->status = -EINVAL;
 		replyData->vsize = 0;
@@ -206,7 +213,9 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
 			if (cmd == CUSTOM_EQ_PARAM_LOUDNESS_CORRECTION) {
 			int16_t value = ((int16_t *) cep)[8];
 			mLoudnessAdjustment = value / 100.0f;
+#ifdef DEBUG
 			ALOGI("Setting loudness correction reference to %f dB", mLoudnessAdjustment);
+#endif
 			*replyData = 0;
 			return 0;
 		}
@@ -219,7 +228,9 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
 		if (cmd == EQ_PARAM_BAND_LEVEL && arg >= 0 && arg < NUM_BANDS) {
 			*replyData = 0;
 			int16_t value = ((int16_t *) cep)[10];
+#ifdef DEBUG
 			ALOGI("Setting band %d to %d", arg, value);
+#endif
 			mBand[arg] = value / 100.0f;
 			return 0;
 		}
@@ -231,12 +242,16 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
 			*replyData = 0;
 			if ((((int16_t *) cep)[8]) >= 0) {
 			*replyData = -EINVAL;
+#ifdef DEBUG
 			ALOGE("Asking for non-existing preset ID");
+#endif
 			return 0;
 		}
 		if ((((int16_t *) cep)[9]) != NUM_BANDS) {
 			*replyData = -EINVAL;
+#ifdef DEBUG
 			ALOGE("Asking to manipulate invalid number of bands");
+#endif
 			return 0;
 		}
 		for (int i = 0; i < NUM_BANDS; i++) {
@@ -247,7 +262,9 @@ int32_t EffectEqualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCmdD
 		}
 	}
 
+#ifdef DEBUG
 	ALOGE("Unknown SET_PARAM size %d, %d bytes", cep->psize, cep->vsize);
+#endif
 	*replyData = -EINVAL;
 	return 0;
 	}
@@ -328,37 +345,15 @@ void EffectEqualizer::updateLoudnessEstimate(float& loudness, int64_t powerSquar
 
 int32_t EffectEqualizer::process(audio_buffer_t *in, audio_buffer_t *out)
 {
+	int32_t tmpL = 0, tmpR = 0;
 	for (uint32_t i = 0; i < in->frameCount; i ++) {
-		/* Update EQ? */
-		if (mNextUpdate == 0) {
-			mNextUpdate = mNextUpdateInterval;
-
-			//ALOGI("powerSqL: %lld, powerSqR: %lld", mPowerSquaredL, mPowerSquaredR);
-			updateLoudnessEstimate(mLoudnessL, mPowerSquaredL);
-			updateLoudnessEstimate(mLoudnessR, mPowerSquaredR);
-			//ALOGI("loudnessL: %f, loudnessR: %f", mLoudnessL, mLoudnessR);
-			mPowerSquaredL = 0;
-			mPowerSquaredR = 0;
-
-
-			if (mEnable && mFade < 100) {
-				mFade += 1;
-			}
-			if (! mEnable && mFade > 0) {
-				mFade -= 1;
-			}
-
-			refreshBands();
-		}
-		mNextUpdate --;
 		
-		int32_t tmpL = read(in, i * 2);
-		int32_t tmpR = read(in, i * 2 + 1);
-
+		tmpL = read(in, i << 1);
+		tmpR = read(in, (i << 1) + 1);
 
 		/* Update signal loudness estimate in SPL */
-		mPowerSquaredL += int64_t(tmpL) * tmpL;
-		mPowerSquaredR += int64_t(tmpR) * tmpR;
+		mPowerSquaredL += pow(int64_t(tmpL), 2);
+		mPowerSquaredR += pow(int64_t(tmpR), 2);
 
 		/* Evaluate EQ filters */
 		for (int32_t j = 0; j < (NUM_BANDS - 1); j ++) {
@@ -366,8 +361,38 @@ int32_t EffectEqualizer::process(audio_buffer_t *in, audio_buffer_t *out)
 			tmpR = mFilterR[j].process(tmpR);
 		}
 
-		write(out, i * 2, tmpL);
-		write(out, i * 2 + 1, tmpR);
+		/* Update EQ? */
+		if (mNextUpdate == 0) {
+			mNextUpdate = mNextUpdateInterval;
+
+#ifdef DEBUG
+			ALOGI("powerSqL: %lld, powerSqR: %lld", mPowerSquaredL, mPowerSquaredR);
+#endif
+			updateLoudnessEstimate(mLoudnessL, mPowerSquaredL);
+			updateLoudnessEstimate(mLoudnessR, mPowerSquaredR);
+#ifdef DEBUG
+			ALOGI("loudnessL: %f, loudnessR: %f", mLoudnessL, mLoudnessR);
+#endif
+
+			/* clean up loudness cache */
+			mPowerSquaredL = 0;
+			mPowerSquaredR = 0;
+
+
+			if (mEnable && mFade < 100) {
+				mFade += 1;
+			}
+			if (!mEnable && mFade > 0) {
+				mFade -= 1;
+			}
+
+			refreshBands();
+		}
+
+		write(out, i << 1, tmpL);
+		write(out, (i << 1) + 1, tmpR);
+
+		mNextUpdate --;
 	}
 
 	return mEnable || mFade != 0 ? 0 : -ENODATA;

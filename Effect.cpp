@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#ifdef DEBUG
 #define LOG_TAG "DSP-Effect"
 
 #include <log/log.h>
+#endif
+
 #include "Effect.h"
 
 Effect::Effect()
@@ -37,7 +40,9 @@ int32_t Effect::configure(void* pCmdData) {
 	* always provides full setup info at initial configure time. */
 	if ((in.mask & EFFECT_CONFIG_SMP_RATE) && (out.mask & EFFECT_CONFIG_SMP_RATE)) {
 		if (out.samplingRate != in.samplingRate) {
+#ifdef DEBUG
 			ALOGE("This effect is not capable of resampling from %d to %d Hz", in.samplingRate, out.samplingRate);
+#endif
 			return -EINVAL;
 		}
 		mSamplingRate = in.samplingRate;
@@ -45,29 +50,41 @@ int32_t Effect::configure(void* pCmdData) {
 
 	if (in.mask & EFFECT_CONFIG_CHANNELS && out.mask & EFFECT_CONFIG_CHANNELS) {
 		if (in.channels != AUDIO_CHANNEL_OUT_STEREO) {
+#ifdef DEBUG
 			ALOGE("Invalid input channel setup: 0x%x", in.channels);
+#endif
 			return -EINVAL;
 		}
 		if (out.channels != AUDIO_CHANNEL_OUT_STEREO) {
+#ifdef DEBUG
 			ALOGE("Invalid output channel setup: 0x%x", in.channels);
+#endif
 			return -EINVAL;
 		}
 	}
 
 	if (in.mask & EFFECT_CONFIG_FORMAT) {
 		if (in.format == AUDIO_FORMAT_PCM_16_BIT) {
+#ifdef DEBUG
 			ALOGI("16bit PCM input detect: 0x%x", in.format);
+#endif
 		}
 		else {
+#ifdef DEBUG
 			ALOGE("Invalid input format (need corrected PCM): 0x%x", in.format);
+#endif
 		}
 	}
 	if (out.mask & EFFECT_CONFIG_FORMAT) {
 		if (out.format == AUDIO_FORMAT_PCM_16_BIT) {
+#ifdef DEBUG
 			ALOGI("16bit pcm output detect: 0x%x", out.format);
+#endif
 		}
 		else {
+#ifdef DEBUG
 			ALOGE("Invalid output format (need corrected PCM): 0x%x", out.format);
+#endif
 		}
 	}
 	if (out.mask & EFFECT_CONFIG_ACC_MODE) {
@@ -101,7 +118,7 @@ int32_t Effect::command(uint32_t cmdCode, uint32_t __attribute__((unused))cmdSiz
 	case EFFECT_CMD_SET_PARAM_DEFERRED:
 	case EFFECT_CMD_SET_DEVICE:
 	case EFFECT_CMD_SET_AUDIO_MODE:
-	break;
+		break;
 
 	case EFFECT_CMD_GET_PARAM: {
 		effect_param_t *rep = (effect_param_t *) pReplyData;

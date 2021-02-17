@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#ifdef DEBUG
 #define LOG_TAG "Effect-Virtualizer"
 
 #include <log/log.h>
+#endif
+
 #include <cmath>
 
 #include "EffectVirtualizer.h"
@@ -90,7 +93,10 @@ int32_t EffectVirtualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCm
 			}
 		}
 
+#ifdef DEBUG
 		ALOGE("Unknown GET_PARAM of %d bytes", cep->psize);
+#endif
+
 		effect_param_t *replyData = (effect_param_t *) pReplyData;
 		replyData->status = -EINVAL;
 		replyData->vsize = 0;
@@ -111,7 +117,10 @@ int32_t EffectVirtualizer::command(uint32_t cmdCode, uint32_t cmdSize, void* pCm
 			}
 		}
 
+#ifdef DEBUG
 		ALOGE("Unknown SET_PARAM of %d, %d bytes", cep->psize, cep->vsize);
+#endif
+
 		int32_t *replyData = (int32_t *) pReplyData;
 		*replyData = -EINVAL;
 		return 0;
@@ -141,8 +150,8 @@ int32_t EffectVirtualizer::process(audio_buffer_t* in, audio_buffer_t* out)
 	for (uint32_t i = 0; i < in->frameCount; i ++) {
 		/* calculate reverb wet into dataL, dataR */
 		
-		int32_t dryL = read(in, i * 2);
-		int32_t dryR = read(in, i * 2 + 1);
+		int32_t dryL = read(in, i << 1);
+		int32_t dryR = read(in, (i << 1) + 1);
 		int32_t dataL = dryL;
 		int32_t dataR = dryR;
 
@@ -180,8 +189,8 @@ int32_t EffectVirtualizer::process(audio_buffer_t* in, audio_buffer_t* out)
 		/* Sound reaching ear from the opposite speaker */
 		side -= mLocalization.process(side);
 
-		write(out, i * 2, center + side);
-		write(out, i * 2 + 1, center - side);
+		write(out, i << 1, center + side);
+		write(out, (i << 1) + 1, center - side);
 
 	}
 
