@@ -23,57 +23,20 @@
 #include <string.h>
 #include "media/AudioEffect.h"
 #include "hardware/audio_effect.h"
-#include "system/audio_effects/effect_bassboost.h"
-#include "system/audio_effects/effect_equalizer.h"
-#include "system/audio_effects/effect_virtualizer.h"
 
 #include "Effect.h"
-#include "EffectBassBoost.h"
-#include "EffectCompression.h"
-#include "EffectEqualizer.h"
-#include "EffectVirtualizer.h"
+#include "MainEffect.h"
 
-static effect_descriptor_t compression_descriptor = {
+
+/* 只保留Compression为主要模块启用 */
+static effect_descriptor_t main_module_descriptor = {
 	{ 0x09e8ede0, 0xddde, 0x11db, 0xb4f6, { 0x00, 0x02, 0xa5, 0xd5, 0xc5, 0x1b } }, // SL_IID_VOLUME
 	{ 0xc3b61114, 0xdef3, 0x5a85, 0xa39d, { 0x5c, 0xc4, 0x02, 0x0a, 0xb8, 0xaf } }, // own UUID
 	EFFECT_CONTROL_API_VERSION,
-	EFFECT_FLAG_TYPE_INSERT | EFFECT_FLAG_INSERT_FIRST,
+	EFFECT_FLAG_OUTPUT_DIRECT | EFFECT_FLAG_INPUT_DIRECT | EFFECT_FLAG_TYPE_INSERT | EFFECT_FLAG_INSERT_FIRST,
 	20, /* 2 MIPS. FIXME: should be measured. */
 	2,
-	"CyanogenMod's Dynamic Range Compression",
-	"Antti S. Lankila"
-};
-
-static effect_descriptor_t bassboost_descriptor = {
-	{ 0x3345d821, 0xbf49, 0x50d1, 0x84db, { 0x5f, 0x7a, 0x49, 0x90, 0xc0, 0x1b } }, // SL_IID_VOLUME
-	{ 0xeb888559, 0x23db, 0x515f, 0xbd90, { 0x53, 0x60, 0x56, 0x5b, 0x1a, 0x46 } }, // own UUID
-	EFFECT_CONTROL_API_VERSION,
-	EFFECT_FLAG_TYPE_INSERT | EFFECT_FLAG_INSERT_FIRST,
-	20, /* 2 MIPS. FIXME: should be measured. */
-	2,
-	"CyanogenMod's Bass Boost",
-	"Antti S. Lankila"
-};
-
-static effect_descriptor_t equalizer_descriptor = {
-	{ 0xa9d9ecab, 0x1521, 0x506a, 0xa6aa, { 0xc8, 0xab, 0xba, 0xf2, 0xca, 0x26 } }, // SL_IID_VOLUME
-        { 0x06cc8ec6, 0x15a0, 0x5b8c, 0x9460, { 0xe3, 0x79, 0xbb, 0xa6, 0xc0, 0x90 } }, // own UUID
-	EFFECT_CONTROL_API_VERSION,
-	EFFECT_FLAG_TYPE_INSERT | EFFECT_FLAG_INSERT_FIRST,
-	20, /* 2 MIPS. FIXME: should be measured. */
-	2,
-	"CyanogenMod's Equalizer",
-	"Antti S. Lankila"
-};
-
-static effect_descriptor_t virtualizer_descriptor = {
-	{ 0x27cf8d17, 0x2060, 0x5ebc, 0x9ac8, { 0x19, 0x0c, 0x7f, 0x5e, 0xbc, 0x15 } }, // SL_IID_VOLUME
-	{ 0x38e9eea4, 0xb7c9, 0x5230, 0xbf5c, { 0x60, 0x20, 0x3b, 0xf6, 0x42, 0x3c } }, // own UUID
-	EFFECT_CONTROL_API_VERSION,
-	EFFECT_FLAG_TYPE_INSERT | EFFECT_FLAG_INSERT_FIRST,
-	20, /* 2 MIPS. FIXME: should be measured. */
-	2,
-	"CyanogenMod's Headset Virtualization",
+	"CyanogenMod's DSP Module Effects",
 	"Antti S. Lankila"
 };
 
@@ -91,6 +54,7 @@ static int32_t generic_process(effect_handle_t self, audio_buffer_t *in, audio_b
 	return e->effect->process(in, out);
 }
 
+/* 接收指令 */
 static int32_t generic_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize, void *pCmdData, uint32_t *replySize, void *pReplyData) {
 	struct effect_module_s *e = (struct effect_module_s *) self;
 	return e->effect->command(cmdCode, cmdSize, pCmdData, replySize, pReplyData);
@@ -110,35 +74,11 @@ static const struct effect_interface_s generic_interface = {
 };
 
 int32_t EffectCreate(const effect_uuid_t *uuid, int32_t __attribute__((unused))sessionId, int32_t __attribute__((unused))ioId, effect_handle_t *pEffect) {
-	if (memcmp(uuid, &compression_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
+	if (memcmp(uuid, &main_module_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
 		struct effect_module_s *e = (struct effect_module_s *) calloc(1, sizeof(struct effect_module_s));
 		e->itfe = &generic_interface;
-		e->effect = new EffectCompression();
-		e->descriptor = &compression_descriptor;
-		*pEffect = (effect_handle_t) e;
-		return 0;
-	}
-	if (memcmp(uuid, &equalizer_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		struct effect_module_s *e = (struct effect_module_s *) calloc(1, sizeof(struct effect_module_s));
-		e->itfe = &generic_interface;
-		e->effect = new EffectEqualizer();
-		e->descriptor = &equalizer_descriptor;
-		*pEffect = (effect_handle_t) e;
-		return 0;
-	}
-	if (memcmp(uuid, &virtualizer_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		struct effect_module_s *e = (struct effect_module_s *) calloc(1, sizeof(struct effect_module_s));
-		e->itfe = &generic_interface;
-		e->effect = new EffectVirtualizer();
-		e->descriptor = &virtualizer_descriptor;
-		*pEffect = (effect_handle_t) e;
-		return 0;
-	}
-	if (memcmp(uuid, &bassboost_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		struct effect_module_s *e = (struct effect_module_s *) calloc(1, sizeof(struct effect_module_s));
-		e->itfe = &generic_interface;
-		e->effect = new EffectBassBoost();
-		e->descriptor = &bassboost_descriptor;
+		e->effect = new MainEffect();
+		e->descriptor = &main_module_descriptor;
 		*pEffect = (effect_handle_t) e;
 		return 0;
 	}
@@ -154,26 +94,16 @@ int32_t EffectRelease(effect_handle_t ei) {
 }
 
 int32_t EffectGetDescriptor(const effect_uuid_t *uuid, effect_descriptor_t *pDescriptor) {
-	if (memcmp(uuid, &compression_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		memcpy(pDescriptor, &compression_descriptor, sizeof(effect_descriptor_t));
-		return 0;
-	}
-	if (memcmp(uuid, &bassboost_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		memcpy(pDescriptor, &bassboost_descriptor, sizeof(effect_descriptor_t));
-		return 0;
-	}
-	if (memcmp(uuid, &equalizer_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		memcpy(pDescriptor, &equalizer_descriptor, sizeof(effect_descriptor_t));
-		return 0;
-	}
-	if (memcmp(uuid, &virtualizer_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
-		memcpy(pDescriptor, &virtualizer_descriptor, sizeof(effect_descriptor_t));
+	if (memcmp(uuid, &main_module_descriptor.uuid, sizeof(effect_uuid_t)) == 0) {
+		memcpy(pDescriptor, &main_module_descriptor, sizeof(effect_descriptor_t));
 		return 0;
 	}
 
 	return -EINVAL;
 }
 
+/* 设置可见度, 仅被自己调用 */
+__attribute__ ((visibility ("default")))
 audio_effect_library_t AUDIO_EFFECT_LIBRARY_INFO_SYM = {
 	.tag = AUDIO_EFFECT_LIBRARY_TAG,
 	.version = EFFECT_LIBRARY_API_VERSION,

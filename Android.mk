@@ -21,10 +21,7 @@ LOCAL_SRC_FILES := \
 	Biquad.cpp \
 	Delay.cpp \
 	Effect.cpp \
-	EffectBassBoost.cpp \
-	EffectCompression.cpp \
-	EffectEqualizer.cpp \
-	EffectVirtualizer.cpp \
+	MainEffect.cpp \
 	FIR16.cpp
 
 LOCAL_SHARED_LIBRARIES := \
