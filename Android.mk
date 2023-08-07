@@ -37,7 +37,9 @@ ifneq ($(TARGET_USE_DEVICE_AUDIO_EFFECTS_CONF),true)
 include $(CLEAR_VARS)
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-LOCAL_CPPFLAGS := -D__cpusplus -g -mfloat-abi=softfp -ffunction-sections -fdata-sections -Ofast -ftree-vectorize -mfpu=neon -march=armv7-a -DHAVE_NEON=1 -DNDEBUG
+LOCAL_CPPFLAGS := -D__cpusplus -mfloat-abi=softfp -ffunction-sections -fdata-sections -Ofast -ftree-vectorize -mfpu=neon -march=armv7-a -DHAVE_NEON=1 -DNDEBUG
+else ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+LOCAL_CPPFLAGS += -Wall -Wextra -D__cpusplus -ffunction-sections -fdata-sections -Ofast -march=armv8-a -mfpu=neon -ftree-vectorize -DNDEBUG
 endif
 
 # LOCAL_CPPFLAGS += -DNDEBUG
